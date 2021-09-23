@@ -1,2 +1,2 @@
 # Otto
-Formerly known as Funky
+Formerly known as Funky/Nervousness
