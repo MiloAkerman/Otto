@@ -72,9 +72,11 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
+  
+    DrivetrainL.setVelocity(50,velocityUnits::pct);
+   DrivetrainR.setVelocity(50,velocityUnits::pct);
+  DrivetrainL.spin(vex::directionType::fwd);
+   DrivetrainR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -143,6 +145,7 @@ void usercontrol(void) {
 int main() {
   // Set up callbacks for autonomous and driver control periods.
   Competition.autonomous(autonomous);
+  
   Competition.drivercontrol(usercontrol);
 
   // Run the pre-autonomous function.
