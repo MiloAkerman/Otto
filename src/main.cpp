@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------------*/
 /*                                                                            */
 /*    Module:       main.cpp                                                  */
-/*    Author:       VEX                                                       */
-/*    Created:      Thu Sep 26 2019                                           */
+/*    Author:       The Otto Worshippers                                      */
+/*    Created:      Sep 2021                                                  */
 /*    Description:  Competition Template                                      */
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
@@ -16,19 +16,19 @@ using namespace vex;
 
 // A global instance of competition
 competition Competition;
-vex::motor      DriveL1 = vex::motor( vex::PORT11);
-vex::motor      DriveL2 = vex::motor( vex::PORT12);
-vex::motor      DriveR1 = vex::motor( vex::PORT1, true);
-vex::motor      DriveR2 = vex::motor( vex::PORT2, true);
-vex::motor      LiftR = vex::motor( vex::PORT6, true);
-vex::motor      LiftL = vex::motor( vex::PORT16);
-vex::motor      ClawR = vex::motor( vex::PORT7, true);
-vex::motor      ClawL = vex::motor( vex::PORT17);
+vex::motor      DriveL1 = vex::motor(vex::PORT11);
+vex::motor      DriveL2 = vex::motor(vex::PORT12);
+vex::motor      DriveR1 = vex::motor(vex::PORT1, true);
+vex::motor      DriveR2 = vex::motor(vex::PORT2, true);
+vex::motor      LiftR = vex::motor(vex::PORT6, true);
+vex::motor      LiftL = vex::motor(vex::PORT16);
+vex::motor      ClawR = vex::motor(vex::PORT7, true);
+vex::motor      ClawL = vex::motor(vex::PORT17);
 
 
 vex::controller   Controller = vex::controller();
 
-// define your global instances of motors and other devices here
+// Group setup
 motor_group DrivetrainL(DriveL1, DriveL2);
 motor_group DrivetrainR(DriveR1, DriveR2);
 motor_group Lift(LiftL, LiftR);
@@ -46,19 +46,19 @@ motor_group Claw(ClawL, ClawR);
 /*---------------------------------------------------------------------------*/
 
 void pre_auton(void) {
+  int ClawSpeedPCT = 75;
+  int LiftSpeedPCT = 70;
+  
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
-  DriveL1.setVelocity(100,velocityUnits::pct);
-  DriveL2.setVelocity(100,velocityUnits::pct);
-  DriveR1.setVelocity(100,velocityUnits::pct);
-  DriveR2.setVelocity(100,velocityUnits::pct);
-  ClawL.setVelocity(25,velocityUnits::pct);
-  ClawR.setVelocity(25,velocityUnits::pct);
-  LiftL.setVelocity(100,velocityUnits::pct);
-  LiftR.setVelocity(100,velocityUnits::pct);
-
-  // All activities that occur before the competition starts
-  // Example: clearing encoders, setting servo positions, ...
+  DriveL1.setVelocity(100, velocityUnits::pct);
+  DriveL2.setVelocity(100, velocityUnits::pct);
+  DriveR1.setVelocity(100, velocityUnits::pct);
+  DriveR2.setVelocity(100, velocityUnits::pct);
+  ClawL.setVelocity(ClawSpeedPCT, velocityUnits::pct);
+  ClawR.setVelocity(ClawSpeedPCT, velocityUnits::pct);
+  LiftL.setVelocity(LiftSpeedPCT, velocityUnits::pct);
+  LiftR.setVelocity(LiftSpeedPCT, velocityUnits::pct);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -72,11 +72,11 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  
-    DrivetrainL.setVelocity(50,velocityUnits::pct);
-   DrivetrainR.setVelocity(50,velocityUnits::pct);
+  // POSSIBLY REDUNDANT. WE ALREADY SET UP VELOCITIES IN PREAUTON. 
+  DrivetrainL.setVelocity(50,velocityUnits::pct);
+  DrivetrainR.setVelocity(50,velocityUnits::pct);
   DrivetrainL.spin(vex::directionType::fwd);
-   DrivetrainR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
+  DrivetrainR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -90,62 +90,39 @@ void autonomous(void) {
 /*---------------------------------------------------------------------------*/
 
 void usercontrol(void) {
-  // User control code here, inside the loop
   while (1) {
-   int ClawSpeedPCT = 75;
-   int LiftSpeedPCT = 70;
-
-
+    // Move drivetrain to controller stick posittion
     DrivetrainL.spin(vex::directionType::fwd, Controller.Axis3.position(), vex::velocityUnits::pct);
-   DrivetrainR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
+    DrivetrainR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
    
-
-   if(Controller.ButtonR1.pressing()) {
-     Claw.spin(directionType::fwd, ClawSpeedPCT, velocityUnits::pct);
-     //ClawR.spin(directionType::fwd, ClawSpeedPCT, velocityUnits::pct);
+    // Claw open and close (bless Cornelius)
+    if(Controller.ButtonR1.pressing()) {
+      Claw.spin(directionType::fwd, velocityUnits::pct);
+    } else if (Controller.ButtonR2.pressing()) {
+      Claw.spin(directionType::rev, velocityUnits::pct);
+    } else {
+      Claw.setStopping(brake);
+      Claw.stop(brakeType::brake);
     }
-     else if (Controller.ButtonR2.pressing()){
-     Claw.spin(directionType::rev, ClawSpeedPCT,velocityUnits::pct);
-     //ClawR.spin(directionType::rev, ClawSpeedPCT,velocityUnits::pct);
-   }
-   else{
-     Claw.setStopping(brake);
-     Claw.stop(brakeType::brake);
-   }
 
-
-   if(Controller.ButtonL1.pressing()) {
-      Lift.spin(directionType::fwd, LiftSpeedPCT, velocityUnits::pct);
-    }
-    
-    else if (Controller.ButtonL2.pressing()) 
-    
-    {
-      Lift.spin(directionType::rev, LiftSpeedPCT,velocityUnits::pct);
-      Lift.spin(directionType::rev, LiftSpeedPCT,velocityUnits::pct);
-      
-    }
-    else {
-      //since nothing is touching either button, it stops
-      
-      LiftR.setStopping(brake); 
-      LiftL.setStopping(brake);
-      LiftR.stop(brakeType::brake);
-      LiftL.stop(brakeType::brake);
+    // Lift up & down (bless Cornelius)
+    if(Controller.ButtonL1.pressing()) {
+      Lift.spin(directionType::fwd, velocityUnits::pct);
+    } else if (Controller.ButtonL2.pressing()) {
+      Lift.spin(directionType::rev, velocityUnits::pct);
+    } else {
+      Lift.setStopping(brake); 
+      Lift.stop(brakeType::brake);
     }
    
-    wait(20, msec); // Sleep the task for a short amount of time to
-                    // prevent wasted resources.
+    wait(20, msec); // Sleep the task for a short amount of time to prevent wasted resources
   }
 }
 
-//
 // Main will set up the competition functions and callbacks.
-//
 int main() {
   // Set up callbacks for autonomous and driver control periods.
   Competition.autonomous(autonomous);
-  
   Competition.drivercontrol(usercontrol);
 
   // Run the pre-autonomous function.
