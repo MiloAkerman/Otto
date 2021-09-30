@@ -8,6 +8,8 @@
 /*----------------------------------------------------------------------------*/
 
 // ---- START VEXCODE CONFIGURED DEVICES ----
+// Robot Configuration:
+// [Name]               [Type]        [Port(s)]
 // ---- END VEXCODE CONFIGURED DEVICES ----
 
 #include "vex.h"
@@ -22,8 +24,8 @@ vex::motor      DriveR1 = vex::motor( vex::PORT1, true);
 vex::motor      DriveR2 = vex::motor( vex::PORT2, true);
 vex::motor      LiftR = vex::motor( vex::PORT6, true);
 vex::motor      LiftL = vex::motor( vex::PORT16);
-vex::motor      ClawR = vex::motor( vex::PORT7, true);
-vex::motor      ClawL = vex::motor( vex::PORT17);
+//vex::motor      ClawR = vex::motor( vex::PORT7, true);
+vex::motor      Claw = vex::motor( vex::PORT17);
 
 
 vex::controller   Controller = vex::controller();
@@ -32,7 +34,9 @@ vex::controller   Controller = vex::controller();
 motor_group DrivetrainL(DriveL1, DriveL2);
 motor_group DrivetrainR(DriveR1, DriveR2);
 motor_group Lift(LiftL, LiftR);
-motor_group Claw(ClawL, ClawR);
+//kill me
+motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
+//for the auton i guess
 
 
 /*---------------------------------------------------------------------------*/
@@ -52,8 +56,7 @@ void pre_auton(void) {
   DriveL2.setVelocity(100,velocityUnits::pct);
   DriveR1.setVelocity(100,velocityUnits::pct);
   DriveR2.setVelocity(100,velocityUnits::pct);
-  ClawL.setVelocity(25,velocityUnits::pct);
-  ClawR.setVelocity(25,velocityUnits::pct);
+  Claw.setVelocity(25,velocityUnits::pct);
   LiftL.setVelocity(100,velocityUnits::pct);
   LiftR.setVelocity(100,velocityUnits::pct);
 
@@ -75,6 +78,12 @@ void autonomous(void) {
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
+  Drive.spinFor(forward,1432,msec,100,velocityUnits::pct); 
+  
+
+
+
+
 }
 
 /*---------------------------------------------------------------------------*/
