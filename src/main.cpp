@@ -7,32 +7,27 @@
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
 
-// ---- START VEXCODE CONFIGURED DEVICES ----
-// ---- END VEXCODE CONFIGURED DEVICES ----
-
 #include "vex.h"
+
 
 using namespace vex;
 
 // A global instance of competition
 competition Competition;
-vex::motor      DriveL1 = vex::motor(vex::PORT11);
-vex::motor      DriveL2 = vex::motor(vex::PORT12);
-vex::motor      DriveR1 = vex::motor(vex::PORT1, true);
-vex::motor      DriveR2 = vex::motor(vex::PORT2, true);
-vex::motor      LiftR = vex::motor(vex::PORT6, true);
-vex::motor      LiftL = vex::motor(vex::PORT16);
-vex::motor      ClawR = vex::motor(vex::PORT7, true);
-vex::motor      ClawL = vex::motor(vex::PORT17);
+vex::motor DriveL1 = vex::motor(vex::PORT11);
+vex::motor DriveL2 = vex::motor(vex::PORT12);
+vex::motor DriveR1 = vex::motor(vex::PORT1, true);
+vex::motor DriveR2 = vex::motor(vex::PORT2, true);
+vex::motor LiftR = vex::motor(vex::PORT6);
+vex::motor LiftL = vex::motor(vex::PORT16, true);
+vex::motor Claw = vex::motor(vex::PORT17, true);
 
-
-vex::controller   Controller = vex::controller();
+vex::controller Controller = vex::controller();
 
 // Group setup
 motor_group DrivetrainL(DriveL1, DriveL2);
 motor_group DrivetrainR(DriveR1, DriveR2);
 motor_group Lift(LiftL, LiftR);
-motor_group Claw(ClawL, ClawR);
 
 
 /*---------------------------------------------------------------------------*/
@@ -55,8 +50,7 @@ void pre_auton(void) {
   DriveL2.setVelocity(100, velocityUnits::pct);
   DriveR1.setVelocity(100, velocityUnits::pct);
   DriveR2.setVelocity(100, velocityUnits::pct);
-  ClawL.setVelocity(ClawSpeedPCT, velocityUnits::pct);
-  ClawR.setVelocity(ClawSpeedPCT, velocityUnits::pct);
+  Claw.setVelocity(ClawSpeedPCT, velocityUnits::pct);
   LiftL.setVelocity(LiftSpeedPCT, velocityUnits::pct);
   LiftR.setVelocity(LiftSpeedPCT, velocityUnits::pct);
 }
@@ -97,9 +91,9 @@ void usercontrol(void) {
    
     // Claw open and close (bless Cornelius)
     if(Controller.ButtonR1.pressing()) {
-      Claw.spin(directionType::fwd, velocityUnits::pct);
+      Claw.spin(directionType::fwd);
     } else if (Controller.ButtonR2.pressing()) {
-      Claw.spin(directionType::rev, velocityUnits::pct);
+      Claw.spin(directionType::rev);
     } else {
       Claw.setStopping(brake);
       Claw.stop(brakeType::brake);
@@ -107,9 +101,9 @@ void usercontrol(void) {
 
     // Lift up & down (bless Cornelius)
     if(Controller.ButtonL1.pressing()) {
-      Lift.spin(directionType::fwd, velocityUnits::pct);
+      Lift.spin(directionType::fwd);
     } else if (Controller.ButtonL2.pressing()) {
-      Lift.spin(directionType::rev, velocityUnits::pct);
+      Lift.spin(directionType::rev);
     } else {
       Lift.setStopping(brake); 
       Lift.stop(brakeType::brake);
