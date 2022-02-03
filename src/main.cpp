@@ -48,18 +48,7 @@ void pre_auton(void) {
 
 /*------------------------------  AUTON  -------------------------------*/
 
-int halfTurnMsecs = 430;\
-
-void spinTo() {
-  // Predictive
-  int kP = 1000;
-  int kI = 100;
-  int kD = 10000;
-
-  int offset = 30;
-  float lastError = 0;
-  float derivative = 0;
-}
+int halfTurnMsecs = 430;
 
 void grabGoal(bool close = true, int moveBack = 0) {
   int liftRaiseDegrees = 820;
