@@ -122,7 +122,7 @@ void usercontrol(void) {
 
     // Mogo up and down (bless Cornelius)
     if (Controller.ButtonR1.pressing()) {
-      mogo.stop(brakeType::brake);
+      Mogo.stop(brakeType::brake);
       if(mogoUp) {
         Tilter.spin(directionType::rev);
       } else {
