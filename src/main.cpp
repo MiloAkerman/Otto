@@ -11,6 +11,8 @@
 using namespace vex;
 
 // A global instance of competition
+
+// motor setup
 competition Competition;
 vex::motor DriveL1 = vex::motor(vex::PORT2, true);
 vex::motor DriveL2 = vex::motor(vex::PORT11);
@@ -18,10 +20,15 @@ vex::motor DriveR1 = vex::motor(vex::PORT12, true);
 vex::motor DriveR2 = vex::motor(vex::PORT1);
 vex::motor Mogo = vex::motor(vex::PORT6);
 vex::motor Lift = vex::motor(vex::PORT6);
-vex::motor Tilter = vex::motor(vex::PORT16, true);
+vex::motor Claw = vex::motor(vex::PORT16, true);
 vex::motor Conveyor = vex::motor(vex::PORT20, true);
 
+// button setup
 vex::controller Controller = vex::controller();
+vex::controller::button MogoToggle = Controller.ButtonR1;
+vex::controller::button ClawToggle = Controller.ButtonR2;
+vex::controller::button LiftUp = Controller.ButtonL1;
+vex::controller::button LiftDown = Controller.ButtonL2;
 
 // Group setup
 motor_group DriveL(DriveL1, DriveL2);
@@ -115,28 +122,29 @@ void autonomous(void) {
 
 void usercontrol(void) {
   bool mogoUp = true;
+  bool clawUp = true;
   while (1) {
     // Move drivetrain to controller stick posittion
     DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(), vex::velocityUnits::pct);
     DriveR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
 
     // Mogo up and down (bless Cornelius)
-    if (Controller.ButtonR1.pressing()) {
+    if (MogoToggle.pressing()) {
       Mogo.stop(brakeType::brake);
       if(mogoUp) {
-        Tilter.spin(directionType::rev);
+        Mogo.spin(directionType::rev);
       } else {
-        Tilter.spin(directionType::fwd);
+        Mogo.spin(directionType::fwd);
       }
     }
 
-    // Tilter close and open (bless Cornelius)
-    if (Controller.ButtonR1.pressing()) {
-      Tilter.stop(brakeType::brake);
-      if(mogoUp) {
-        Tilter.spin(directionType::rev);
+    // Claw close and open (bless Cornelius)
+    if (ClawToggle.pressing()) {
+      Claw.stop(brakeType::brake);
+      if(clawUp) {
+        Claw.spin(directionType::rev);
       } else {
-        Tilter.spin(directionType::fwd);
+        Claw.spin(directionType::fwd);
       }
     }
 
