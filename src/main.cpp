@@ -16,9 +16,10 @@ vex::motor DriveL1 = vex::motor(vex::PORT2, true);
 vex::motor DriveL2 = vex::motor(vex::PORT11);
 vex::motor DriveR1 = vex::motor(vex::PORT12, true);
 vex::motor DriveR2 = vex::motor(vex::PORT1);
-vex::motor LiftR = vex::motor(vex::PORT6);
-vex::motor LiftL = vex::motor(vex::PORT16, true);
-vex::motor Claw = vex::motor(vex::PORT20, true);
+vex::motor Mogo = vex::motor(vex::PORT6);
+vex::motor Lift = vex::motor(vex::PORT6);
+vex::motor Tilter = vex::motor(vex::PORT16, true);
+vex::motor Conveyor = vex::motor(vex::PORT20, true);
 
 vex::controller Controller = vex::controller();
 
@@ -26,23 +27,15 @@ vex::controller Controller = vex::controller();
 motor_group DriveL(DriveL1, DriveL2);
 motor_group DriveR(DriveR1, DriveR2);
 motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
-motor_group Lift(LiftL, LiftR);
 
 /*------------------------------  PRE-AUTON  --------------------------*/
 
 void pre_auton(void) {
-  int ClawSpeedPCT = 75;
-  int LiftSpeedPCT = 70;
-
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
-  Claw.setVelocity(ClawSpeedPCT, velocityUnits::pct);
-  LiftL.setVelocity(LiftSpeedPCT, velocityUnits::pct);
-  LiftR.setVelocity(LiftSpeedPCT, velocityUnits::pct);
-
   // Reset motors which rotate based on degrees
-  Claw.resetRotation();
+  Mogo.resetRotation();
   Lift.resetRotation();
 }
 
@@ -121,17 +114,30 @@ void autonomous(void) {
 /*------------------------------  USER CONTROL  -----------------------------*/
 
 void usercontrol(void) {
+  bool mogoUp = true;
   while (1) {
     // Move drivetrain to controller stick posittion
     DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(), vex::velocityUnits::pct);
     DriveR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
 
-    // Claw open and close (bless Cornelius)
+    // Mogo up and down (bless Cornelius)
     if (Controller.ButtonR1.pressing()) {
-      Claw.spin(directionType::rev);
-    } else if (Controller.ButtonR2.pressing()) {
+      mogo.stop(brakeType::brake);
+      if(mogoUp) {
+        Claw.spin(directionType::rev);
+      } else {
+        Claw.spin(directionType::fwd);
+      }
+    }
+
+    // Claw close and open (bless Cornelius)
+    if (Controller.ButtonR1.pressing()) {
       Claw.stop(brakeType::brake);
-      Claw.spin(directionType::fwd);
+      if(mogoUp) {
+        Claw.spin(directionType::rev);
+      } else {
+        Claw.spin(directionType::fwd);
+      }
     }
 
     // Lift up & down (bless Cornelius)
