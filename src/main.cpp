@@ -14,14 +14,14 @@ using namespace vex;
 
 // motor setup
 competition Competition;
-vex::motor DriveL1 = vex::motor(vex::PORT2, true);
-vex::motor DriveL2 = vex::motor(vex::PORT11);
-vex::motor DriveR1 = vex::motor(vex::PORT12, true);
-vex::motor DriveR2 = vex::motor(vex::PORT1);
-vex::motor Mogo = vex::motor(vex::PORT6);
+vex::motor DriveL1 = vex::motor(vex::PORT16, true);
+vex::motor DriveL2 = vex::motor(vex::PORT17);
+vex::motor DriveR1 = vex::motor(vex::PORT18);
+vex::motor DriveR2 = vex::motor(vex::PORT19, true);
+vex::motor Mogo = vex::motor(vex::PORT15);
 vex::motor Lift = vex::motor(vex::PORT6);
-vex::motor Claw = vex::motor(vex::PORT16, true);
-vex::motor Conveyor = vex::motor(vex::PORT20, true);
+vex::motor Claw = vex::motor(vex::PORT12, true);
+vex::motor Conveyor = vex::motor(vex::PORT8, true);
 
 // button setup
 vex::controller Controller = vex::controller();
@@ -29,6 +29,7 @@ vex::controller::button MogoToggle = Controller.ButtonR1;
 vex::controller::button ClawToggle = Controller.ButtonR2;
 vex::controller::button LiftUp = Controller.ButtonL1;
 vex::controller::button LiftDown = Controller.ButtonL2;
+vex::controller::button ConveyorToggle = Controller.ButtonLeft;
 
 // Group setup
 motor_group DriveL(DriveL1, DriveL2);
@@ -41,7 +42,14 @@ void pre_auton(void) {
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
+  Drive.setVelocity(90, velocityUnits::pct);
+  Claw.setVelocity(90, velocityUnits::pct);
+  Lift.setVelocity(90, velocityUnits::pct);
+  Mogo.setVelocity(100, velocityUnits::pct);
+  Conveyor.setVelocity(90, velocityUnits::pct);
+
   // Reset motors which rotate based on degrees
+  Claw.resetRotation();
   Mogo.resetRotation();
   Lift.resetRotation();
 }
@@ -56,13 +64,13 @@ void grabGoal(bool close = true, int moveBack = 0) {
 
   if(close) {
     Lift.spinToPosition(liftApex, rotationUnits::deg);            // places lift on apex (~50 deg)
-    Tilter.spin(directionType::rev);                                // closes Tilter
+    Claw.spin(directionType::rev);                                // closes Tilter
     vex::task::sleep(200);                                        // waits to allow time for Tilter to close
     if(moveBack > 0) Drive.spinFor(reverse, moveBack, msec);      // allows for moving back fter grabbing (when raising)
     Lift.spinToPosition(liftRaiseDegrees, rotationUnits::deg);    // lifts lift to max
   } else {
     Lift.spinToPosition(liftApex, rotationUnits::deg);            // lowers lift to apex
-    Tilter.spin(directionType::fwd);                                // opens Tilter
+    Claw.spin(directionType::fwd);                                // opens Tilter
   }
 }
 
@@ -74,7 +82,7 @@ void grabNeutralGoal() {
   grabGoal();                                                     // grab goal and raise
 
   Drive.spinFor(reverse, driveTimeMsecs*0.80, msec);              // drives halfway back to alliance zone
-  Tilter.spin(directionType::fwd);                                  // drops goal
+  Claw.spin(directionType::fwd);                                  // drops goal
   vex::task::sleep(200);
 
   Drive.spinFor(reverse, driveTimeMsecs*0.20, msec);              // finishes going back to starting spot
@@ -114,49 +122,78 @@ void autonomous(void) {
   grabNeutralGoal();
 
   Drive.setVelocity(100, velocityUnits::pct);
-  Tilter.setVelocity(100, velocityUnits::pct);
+  Claw.setVelocity(100, velocityUnits::pct);
   Lift.setVelocity(100, velocityUnits::pct);
 }
 
 /*------------------------------  USER CONTROL  -----------------------------*/
 
 void usercontrol(void) {
+  // worth a try
+  Drive.setVelocity(90, velocityUnits::pct);
+  Claw.setVelocity(90, velocityUnits::pct);
+  Lift.setVelocity(90, velocityUnits::pct);
+  Mogo.setVelocity(100, velocityUnits::pct);
+  Conveyor.setVelocity(90, velocityUnits::pct);
+
   bool mogoUp = true;
   bool clawUp = true;
+  bool conveyorOn = false;
+
+  bool pressing[3] = { false, false, false };
+  Lift.setStopping(brakeType::hold);
+  Mogo.setStopping(brakeType::hold);
+  Claw.setStopping(brakeType::hold);
+
   while (1) {
     // Move drivetrain to controller stick posittion
     DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(), vex::velocityUnits::pct);
     DriveR.spin(vex::directionType::fwd, Controller.Axis2.position(), vex::velocityUnits::pct);
 
     // Mogo up and down (bless Cornelius)
-    if (MogoToggle.pressing()) {
+    if (MogoToggle.pressing() && !pressing[0]) {
       Mogo.stop(brakeType::brake);
       if(mogoUp) {
         Mogo.spin(directionType::rev);
       } else {
         Mogo.spin(directionType::fwd);
       }
+      mogoUp = !mogoUp;
     }
 
     // Claw close and open (bless Cornelius)
-    if (ClawToggle.pressing()) {
+    if (ClawToggle.pressing() && !pressing[1]) {
       Claw.stop(brakeType::brake);
       if(clawUp) {
         Claw.spin(directionType::rev);
       } else {
         Claw.spin(directionType::fwd);
       }
+      clawUp = !clawUp;
+    }
+
+    // Claw close and open (bless Cornelius)
+    if (ConveyorToggle.pressing() && !pressing[2]) {
+      if(!conveyorOn) {
+        Conveyor.spin(directionType::rev);
+      } else {
+        Conveyor.stop(brakeType::brake);
+      }
+      conveyorOn = !conveyorOn;
     }
 
     // Lift up & down (bless Cornelius)
-    if (Controller.ButtonL1.pressing()) {
+    if (LiftUp.pressing()) {
       Lift.spin(directionType::fwd);
-    } else if (Controller.ButtonL2.pressing()) {
+    } else if (LiftDown.pressing()) {
       Lift.spin(directionType::rev);
     } else {
-      Lift.setStopping(brake);
       Lift.stop(brakeType::brake);
     }
+
+    pressing[0] = MogoToggle.pressing();
+    pressing[1] = ClawToggle.pressing();
+    pressing[2] = ConveyorToggle.pressing();
 
     wait(20, msec); // Sleep the task for a short amount of time to prevent
                     // wasted resources
