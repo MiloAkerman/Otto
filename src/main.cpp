@@ -10,10 +10,9 @@
 #include "vex.h"
 using namespace vex;
 
-// A global instance of competition
+competition Competition;
 
 // motor setup
-competition Competition;
 vex::motor DriveL1 = vex::motor(vex::PORT16, true);
 vex::motor DriveL2 = vex::motor(vex::PORT17);
 vex::motor DriveR1 = vex::motor(vex::PORT18);
@@ -42,6 +41,7 @@ void pre_auton(void) {
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
+  // might not be executing during testing
   Drive.setVelocity(90, velocityUnits::pct);
   Claw.setVelocity(90, velocityUnits::pct);
   Lift.setVelocity(90, velocityUnits::pct);
@@ -152,7 +152,7 @@ void usercontrol(void) {
 
     // Mogo up and down (bless Cornelius)
     if (MogoToggle.pressing() && !pressing[0]) {
-      Mogo.stop(brakeType::brake);
+      Mogo.stop();
       if(mogoUp) {
         Mogo.spin(directionType::rev);
       } else {
@@ -163,7 +163,7 @@ void usercontrol(void) {
 
     // Claw close and open (bless Cornelius)
     if (ClawToggle.pressing() && !pressing[1]) {
-      Claw.stop(brakeType::brake);
+      Claw.stop();
       if(clawUp) {
         Claw.spin(directionType::rev);
       } else {
@@ -177,7 +177,7 @@ void usercontrol(void) {
       if(!conveyorOn) {
         Conveyor.spin(directionType::rev);
       } else {
-        Conveyor.stop(brakeType::brake);
+        Conveyor.stop();
       }
       conveyorOn = !conveyorOn;
     }
@@ -188,7 +188,7 @@ void usercontrol(void) {
     } else if (LiftDown.pressing()) {
       Lift.spin(directionType::rev);
     } else {
-      Lift.stop(brakeType::brake);
+      Lift.stop();
     }
 
     pressing[0] = MogoToggle.pressing();
