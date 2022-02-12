@@ -52,7 +52,7 @@ void toggleClaw() {
 void toggleMogo() {
   Mogo.stop();
   if (mogoUp) {
-    Mogo.spinTo(360, rotationUnits::deg, false);
+    Mogo.spinTo(500, rotationUnits::deg, false);
   } else {
     Mogo.spinTo(0, rotationUnits::deg, false);
   }
