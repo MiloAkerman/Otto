@@ -21,6 +21,7 @@ vex::motor Mogo = vex::motor(vex::PORT15);
 vex::motor Lift = vex::motor(vex::PORT6);
 vex::motor Claw = vex::motor(vex::PORT12, true);
 vex::motor Conveyor = vex::motor(vex::PORT8, true);
+vex::inertial Inertial = vex::inertial(vex::PORT10);
 
 // button setup
 vex::controller Controller = vex::controller();
@@ -35,26 +36,30 @@ motor_group DriveL(DriveL1, DriveL2);
 motor_group DriveR(DriveR1, DriveR2);
 motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
+// Autonomous values
+double allianceGoalRotation = 40.0;
+int msecNeutralGoal = 2800;
+
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
-bool clawUp = true;
+bool clawUp = false;
 bool conveyorOn = false;
 
-void toggleClaw() {
+void toggleClaw(bool waitForCompletion = false) {
   Claw.stop();
   if (clawUp) {
-    Claw.spinTo(0, rotationUnits::deg, false);
+    Claw.spinTo(0, rotationUnits::deg, waitForCompletion);
   } else {
-    Claw.spinTo(360, rotationUnits::deg, false);
+    Claw.spinTo(360, rotationUnits::deg, waitForCompletion);
   }
   clawUp = !clawUp;
 }
-void toggleMogo() {
+void toggleMogo(bool waitForCompletion = false) {
   Mogo.stop();
   if (mogoUp) {
-    Mogo.spinTo(500, rotationUnits::deg, false);
+    Mogo.spinTo(500, rotationUnits::deg, waitForCompletion);
   } else {
-    Mogo.spinTo(0, rotationUnits::deg, false);
+    Mogo.spinTo(0, rotationUnits::deg, waitForCompletion);
   }
   mogoUp = !mogoUp;
 }
@@ -88,59 +93,24 @@ void pre_auton(void) {
 
 /*------------------------------  AUTON  -------------------------------*/
 
-int halfTurnMsecs = 430;
-
-void grabGoal(bool close = true, int moveBack = 0) {
-  int liftRaiseDegrees = 820;
-  int liftApex = 150;
-
-  if (close) {
-    Lift.spinToPosition(liftApex,
-                        rotationUnits::deg); // places lift on apex (~50 deg)
-    Claw.spin(directionType::rev);           // closes Tilter
-    vex::task::sleep(200); // waits to allow time for Tilter to close
-    if (moveBack > 0)
-      Drive.spinFor(
-          reverse, moveBack,
-          msec); // allows for moving back fter grabbing (when raising)
-    Lift.spinToPosition(liftRaiseDegrees,
-                        rotationUnits::deg); // lifts lift to max
-  } else {
-    Lift.spinToPosition(liftApex, rotationUnits::deg); // lowers lift to apex
-    Claw.spin(directionType::fwd);                     // opens Tilter
-  }
-}
-
 void grabNeutralGoal() {
   Drive.setVelocity(100, velocityUnits::pct); // max speed to avoid stealing
-  int driveTimeMsecs = 1520;                  // time it takes to get to goal
 
-  Drive.spinFor(forward, driveTimeMsecs, msec); // drives to neutral goal
-  grabGoal();                                   // grab goal and raise
+  Drive.spinFor(forward, msecNeutralGoal, msec); // drives to neutral goal
+  toggleClaw();                                  // grab goal
 
-  Drive.spinFor(reverse, driveTimeMsecs * 0.80,
+  Drive.spinFor(reverse, msecNeutralGoal * 0.60,
                 msec);           // drives halfway back to alliance zone
-  Claw.spin(directionType::fwd); // drops goal
-  vex::task::sleep(200);
+  toggleClaw();                  // drops goal
 
-  Drive.spinFor(reverse, driveTimeMsecs * 0.20,
+  Drive.spinFor(reverse, msecNeutralGoal * 0.40,
                 msec); // finishes going back to starting spot
-  Lift.spinToPosition(50, rotationUnits::deg); // lowers lift to apex
-
-  Drive.setVelocity(
-      80, velocityUnits::pct); // reduces speed again for better driver control
 }
 
 void allianceGoal() {
   Drive.setVelocity(80, velocityUnits::pct);
 
-  Lift.spinToPosition(80, rotationUnits::deg); // lowers lift to apex
-  Drive.spinFor(forward, 500, msec);           // push goal
-  grabGoal(false);                             // open Tilter
-  vex::task::sleep(200);                       // wait for Tilter to open
-
-  Lift.spinToPosition(0, rotationUnits::deg); // lowers lift to apex
-  grabGoal();                                 // grabs alliance goal
+  
 
   Drive.spinFor(reverse, 1200, msec); // back up
   /* LEFT TURN
@@ -157,8 +127,18 @@ void allianceGoal() {
 }
 
 void autonomous(void) {
-  allianceGoal();
+  /*allianceGoal();
   vex::task::sleep(500);
+  grabNeutralGoal();*/
+
+  Inertial.startCalibration();
+  waitUntil(!Inertial.isCalibrating());
+
+  // clear claw
+  Lift.spinToPosition(50, rotationUnits::deg); // allow for claw to open
+  toggleClaw();                                // opens claw
+  Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
+
   grabNeutralGoal();
 
   Drive.setVelocity(100, velocityUnits::pct);
