@@ -38,8 +38,8 @@ motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
 // Autonomous values
 double allianceGoalRotation = 40.0;
-int msecNeutralGoal = 2800;
-int msecAllianceGoal = 1500;
+int msecNeutralGoal = 1100;
+int msecAllianceGoal = 500;
 
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
@@ -79,8 +79,8 @@ void pre_auton(void) {
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
-  Inertial.startCalibration();
-  waitUntil(!Inertial.isCalibrating());
+  Inertial.calibrate();
+  while( Inertial.isCalibrating() ) { wait(10,msec); }
 
   // might not be executing during testing
   Drive.setVelocity(100, velocityUnits::pct);
@@ -89,10 +89,14 @@ void pre_auton(void) {
   Mogo.setVelocity(100, velocityUnits::pct);
   Conveyor.setVelocity(100, velocityUnits::pct);
 
-  // Reset motors which rotate based on degrees
+  // Reset motors which rotate based on degrees 
   Claw.resetRotation(); // claw starts CLOSED
   Mogo.resetRotation(); // Mogo starts UP
   Lift.resetRotation(); // Lift starts DOWN
+
+  Lift.setStopping(brakeType::hold);
+  Mogo.setStopping(brakeType::hold);
+  Claw.setStopping(brakeType::hold);
 }
 
 /*------------------------------  AUTON  -------------------------------*/
@@ -102,6 +106,7 @@ void grabNeutralGoal() {
 
   Drive.spinFor(forward, msecNeutralGoal, msec); // drives to neutral goal
   toggleClaw();                                  // grab goal
+  Lift.spinToPosition(0, rotationUnits::deg); // allow for claw to open
 
   Drive.spinFor(reverse, msecNeutralGoal * 0.61,
                 msec);           // drives halfway back to alliance zone
@@ -134,21 +139,23 @@ void autonomous(void) {
   grabNeutralGoal();*/
 
   // clear claw
-  Lift.spinToPosition(50, rotationUnits::deg); // allow for claw to open
+  Lift.spinToPosition(300, rotationUnits::deg); // allow for claw to open
   toggleClaw();                                // opens claw
-  Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
+  //Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
 
   grabNeutralGoal();
 
-  DriveL.spin(reverse);
-  DriveR.spin(forward);
-  waitUntil(Inertial.heading() > 200 && Inertial.heading() < 290); // drift
+  DriveL.spin(forward);
+  DriveR.spin(reverse);
+  waitUntil(Inertial.heading() < 90 && Inertial.heading() > 40); // drift
   Drive.stop(brakeType::brake);
 
-  toggleMogo();
+  toggleMogo(true);
   Drive.spinFor(reverse, msecAllianceGoal,
                 msec);           // drives to alliance
+  wait(1, timeUnits::sec);
   toggleMogo();
+  wait(1, timeUnits::sec);
   Drive.spinFor(forward, msecAllianceGoal,
                 msec);           // drives back
   toggleConveyor();
@@ -169,9 +176,6 @@ void usercontrol(void) {
   Conveyor.setVelocity(100, velocityUnits::pct);
 
   bool pressing[3] = {false, false, false};
-  Lift.setStopping(brakeType::hold);
-  Mogo.setStopping(brakeType::hold);
-  Claw.setStopping(brakeType::hold);
 
 
   while (1) {
