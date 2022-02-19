@@ -37,9 +37,9 @@ motor_group DriveR(DriveR1, DriveR2);
 motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
 // Autonomous values
-double allianceGoalRotation = 40.0;
+int allianceGoalRotation = 2000;
 int msecNeutralGoal = 2800;
-int msecAllianceGoal = 500;
+int msecAllianceGoal = 800;
 
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
@@ -106,11 +106,10 @@ void grabNeutralGoal() {
 
   Drive.spinFor(forward, msecNeutralGoal, msec); // drives to neutral goal
   toggleClaw();                                  // grab goal
-  Lift.spinToPosition(0, rotationUnits::deg); // allow for claw to open
 
   Drive.spinFor(reverse, msecNeutralGoal * 0.60,
                 msec);           // drives halfway back to alliance zone
-  toggleClaw();                  // drops goal
+  //toggleClaw();                  // drops goal
 
   Drive.spinFor(reverse, msecNeutralGoal * 0.40,
                 msec); // finishes going back to starting spot
@@ -140,19 +139,16 @@ void autonomous(void) {
   vex::task::sleep(500);
   grabNeutralGoal();*/
 
-  Inertial.startCalibration();
-  waitUntil(!Inertial.isCalibrating());
-
   // clear claw
-  Lift.spinToPosition(300, rotationUnits::deg); // allow for claw to open
+  Lift.spinToPosition(80, rotationUnits::deg); // allow for claw to open
   toggleClaw();                                // opens claw
-  //Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
+  Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
 
   grabNeutralGoal();
 
   DriveL.spin(forward);
   DriveR.spin(reverse);
-  waitUntil(Inertial.heading() < 90 && Inertial.heading() > 40); // drift
+  wait(allianceGoalRotation, msec);
   Drive.stop(brakeType::brake);
 
   toggleMogo(true);
@@ -174,7 +170,7 @@ void autonomous(void) {
 
 void usercontrol(void) {
   // worth a try
-  Drive.setVelocity(90, velocityUnits::pct);
+  Drive.setVelocity(100, velocityUnits::pct);
   Claw.setVelocity(90, velocityUnits::pct);
   Lift.setVelocity(90, velocityUnits::pct);
   Mogo.setVelocity(100, velocityUnits::pct);
