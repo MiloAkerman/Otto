@@ -37,9 +37,11 @@ motor_group DriveR(DriveR1, DriveR2);
 motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
 // Autonomous values
+double percentageAllianceGoal = 57.5;
 int allianceGoalRotation = 2000;
 int msecNeutralGoal = 2800;
-int msecAllianceGoal = 800;
+int msecAllianceGoal = 1600;
+int msecBigGoal = 4000;
 
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
@@ -107,63 +109,48 @@ void grabNeutralGoal() {
   Drive.spinFor(forward, msecNeutralGoal, msec); // drives to neutral goal
   toggleClaw();                                  // grab goal
 
-  Drive.spinFor(reverse, msecNeutralGoal * 0.60,
+  Drive.spinFor(reverse, msecNeutralGoal * (percentageAllianceGoal/100),
                 msec);           // drives halfway back to alliance zone
   //toggleClaw();                  // drops goal
-
-  Drive.spinFor(reverse, msecNeutralGoal * 0.40,
-                msec); // finishes going back to starting spot
 }
-
-void allianceGoal() {
-  Drive.setVelocity(80, velocityUnits::pct);
-
-  
-
-  Drive.spinFor(reverse, 1200, msec); // back up
-  /* LEFT TURN
-  DriveL.spin(reverse);                                           // spins both
-  motors in DriveR.spin(forward);                                           //
-  reverse directions to turn vex::task::sleep(halfTurnMsecs); // waits until
-  turn is over Drive.stop(brakeType::brake); // stops both motors*/
-
-  // PROTO FULL SPIN + ACCOUNT FOR DRIFT
-  /*DriveL.spin(reverse);
+void grabAllianceGoal() {
+  DriveL.spin(reverse);
   DriveR.spin(forward);
-  vex::task::sleep(halfTurnMsecs * 2 - 92);
-  Drive.stop(brakeType::brake);*/
+  waitUntil(Inertial.heading() < 285 && Inertial.heading() > 50); // drift
+  Drive.stop(brakeType::brake);
+  Drive.spinFor(forward, 400,
+                msec);           // drives to alliance
+
+  toggleMogo(true);
+  Drive.spinFor(reverse, msecAllianceGoal,
+                msec);           // drives to alliance
+  wait(0.2, timeUnits::sec);
+  toggleMogo(true);
+  wait(0.2, timeUnits::sec);
+  Drive.spinFor(forward, msecAllianceGoal,
+                msec);           // drives back
+  toggleConveyor();
+}
+void grabBigGoal() {
+  toggleClaw();
+  DriveL.spin(forward);
+  DriveR.spin(reverse);
+  waitUntil(Inertial.heading() > 315 && Inertial.heading() < 340); // drift
+
+  Drive.spinFor(forward, msecBigGoal,
+                msec);           // drives to alliance
+  toggleClaw();
 }
 
 void autonomous(void) {
-  /*allianceGoal();
-  vex::task::sleep(500);
-  grabNeutralGoal();*/
-
   // clear claw
   Lift.spinToPosition(80, rotationUnits::deg); // allow for claw to open
   toggleClaw();                                // opens claw
   Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
 
   grabNeutralGoal();
-
-  DriveL.spin(forward);
-  DriveR.spin(reverse);
-  wait(allianceGoalRotation, msec);
-  Drive.stop(brakeType::brake);
-
-  toggleMogo(true);
-  Drive.spinFor(reverse, msecAllianceGoal,
-                msec);           // drives to alliance
-  wait(1, timeUnits::sec);
-  toggleMogo();
-  wait(1, timeUnits::sec);
-  Drive.spinFor(forward, msecAllianceGoal,
-                msec);           // drives back
-  toggleConveyor();
-
-  Drive.setVelocity(100, velocityUnits::pct);
-  Claw.setVelocity(100, velocityUnits::pct);
-  Lift.setVelocity(100, velocityUnits::pct);
+  grabAllianceGoal();
+  //grabBigGoal();
 }
 
 /*------------------------------  USER CONTROL  -----------------------------*/
@@ -171,15 +158,15 @@ void autonomous(void) {
 void usercontrol(void) {
   // worth a try
   Drive.setVelocity(100, velocityUnits::pct);
-  Claw.setVelocity(90, velocityUnits::pct);
+  Claw.setVelocity(100, velocityUnits::pct);
   Lift.setVelocity(90, velocityUnits::pct);
   Mogo.setVelocity(100, velocityUnits::pct);
-  Conveyor.setVelocity(90, velocityUnits::pct);
+  Conveyor.setVelocity(100, velocityUnits::pct);
 
   bool pressing[3] = {false, false, false};
 
   while (1) {
-    // Move drivetrain to controller stick posittion
+    // Move drivetrain to controller stick position
     DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(),
                 vex::velocityUnits::pct);
     DriveR.spin(vex::directionType::fwd, Controller.Axis2.position(),
@@ -218,6 +205,8 @@ void usercontrol(void) {
 
 // Main will set up the competition functions and callbacks.
 int main() {
+  Brain.Screen.render(true,false); //enable double buffering for smoother drawing
+
   // Set up callbacks for autonomous and driver control periods.
   Competition.autonomous(autonomous);
   Competition.drivercontrol(usercontrol);
@@ -227,6 +216,12 @@ int main() {
 
   // Prevent main from exiting with an infinite loop.
   while (true) {
+    Brain.Screen.clearLine(1,color::black);
+    Brain.Screen.clearLine(2,color::black);
+    Brain.Screen.setCursor(1,0);
+    Brain.Screen.print("Sensor heading: %f degrees", Inertial.heading());
+    Brain.Screen.render(); //push data to the LCD all at once to prevent image flickering
+
     wait(100, msec);
   }
 }
