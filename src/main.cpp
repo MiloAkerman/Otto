@@ -38,12 +38,8 @@ motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
 // Autonomous values
 double allianceGoalRotation = 40.0;
-<<<<<<< HEAD
-int msecNeutralGoal = 1100;
-int msecAllianceGoal = 500;
-=======
 int msecNeutralGoal = 2800;
->>>>>>> parent of 7ff0f4c (A TON OF STUFF)
+int msecAllianceGoal = 500;
 
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
@@ -83,12 +79,9 @@ void pre_auton(void) {
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
-<<<<<<< HEAD
   Inertial.calibrate();
   while( Inertial.isCalibrating() ) { wait(10,msec); }
 
-=======
->>>>>>> parent of 7ff0f4c (A TON OF STUFF)
   // might not be executing during testing
   Drive.setVelocity(90, velocityUnits::pct);
   Claw.setVelocity(90, velocityUnits::pct);
@@ -157,7 +150,6 @@ void autonomous(void) {
 
   grabNeutralGoal();
 
-<<<<<<< HEAD
   DriveL.spin(forward);
   DriveR.spin(reverse);
   waitUntil(Inertial.heading() < 90 && Inertial.heading() > 40); // drift
@@ -173,8 +165,6 @@ void autonomous(void) {
                 msec);           // drives back
   toggleConveyor();
 
-=======
->>>>>>> parent of 7ff0f4c (A TON OF STUFF)
   Drive.setVelocity(100, velocityUnits::pct);
   Claw.setVelocity(100, velocityUnits::pct);
   Lift.setVelocity(100, velocityUnits::pct);
