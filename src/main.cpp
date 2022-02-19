@@ -1,234 +1,237 @@
 /*----------------------------------------------------------------------------*/
 /*                                                                            */
 /*    Module:       main.cpp                                                  */
-/*    Author:       The Otto Worshippers                                      */
-/*    Created:      Sep 2021                                                  */
-/*    Description:  Competition Template                                      */
+/*    Author:       C:\Users\Zachary R                                        */
+/*    Created:      Mon Jan 31 2022                                           */
+/*    Description:  V5 project                                                */
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
 
+// ---- START VEXCODE CONFIGURED DEVICES ----
+// Robot Configuration:
+// [Name]               [Type]        [Port(s)]
+// Ring                 motor         7               
+// ---- END VEXCODE CONFIGURED DEVICES ----
+
 #include "vex.h"
+
 using namespace vex;
 
 competition Competition;
 
-// motor setup
-vex::motor DriveL1 = vex::motor(vex::PORT16, true);
-vex::motor DriveL2 = vex::motor(vex::PORT17);
-vex::motor DriveR1 = vex::motor(vex::PORT18);
-vex::motor DriveR2 = vex::motor(vex::PORT19, true);
-vex::motor Mogo = vex::motor(vex::PORT15);
-vex::motor Lift = vex::motor(vex::PORT6);
-vex::motor Claw = vex::motor(vex::PORT12, true);
-vex::motor Conveyor = vex::motor(vex::PORT8, true);
-vex::inertial Inertial = vex::inertial(vex::PORT21);
 
-// button setup
-vex::controller Controller = vex::controller();
-vex::controller::button MogoToggle = Controller.ButtonR1;
-vex::controller::button ClawToggle = Controller.ButtonR2;
-vex::controller::button LiftUp = Controller.ButtonL1;
-vex::controller::button LiftDown = Controller.ButtonL2;
-vex::controller::button ConveyorToggle = Controller.ButtonLeft;
 
-// Group setup
-motor_group DriveL(DriveL1, DriveL2);
-motor_group DriveR(DriveR1, DriveR2);
-motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
-// Autonomous values
-double allianceGoalRotation = 40.0;
-int msecNeutralGoal = 1100;
-int msecAllianceGoal = 500;
+///////////////////////////////
+bool leftifnotright = false;
+bool aiming4middle = false;
+////////////////////////////////
 
-/*------------------------------  HELPERS  --------------------------*/
-bool mogoUp = true;
-bool clawUp = false;
-bool conveyorOn = false;
 
-void toggleClaw(bool waitForCompletion = false) {
-  Claw.stop();
-  if (clawUp) {
-    Claw.spinTo(0, rotationUnits::deg, waitForCompletion);
-  } else {
-    Claw.spinTo(360, rotationUnits::deg, waitForCompletion);
-  }
-  clawUp = !clawUp;
+//Voltage in MV for motors
+int Max = 12000;
+//Threshhold for drivetrain to prevent sticky drift on the controller
+int THRESH = 5;
+// define variables used for controlling motors based on controller inputs
+int transmission_delay = 0;
+// declares the int that is used for making the button
+bool Controller1LeftShoulderControlMotorsStopped = true;
+bool Controller1RightShoulderControlMotorsStopped = true;
+bool Controller1UpDownButtonsControlMotorsStopped = true;
+bool ConveyorStopped = true;
+bool ConveyorUp = true;
+bool DrivetrainLNeedsToBeStopped_Controller1 = true;
+bool DrivetrainRNeedsToBeStopped_Controller1 = true;
+
+
+
+//Drivetrain function ripped from califronia
+const int SCALE = 120;
+void set_tank(int l, int r) {
+  lf.spin(fwd, l*SCALE, voltageUnits::mV);
+  lb.spin(fwd, l*SCALE, voltageUnits::mV);
+  rb.spin(fwd, r*SCALE, voltageUnits::mV);
+  rf.spin(fwd, r*SCALE, voltageUnits::mV);
+  Brain.Screen.print(l);
 }
-void toggleMogo(bool waitForCompletion = false) {
-  Mogo.stop();
-  if (mogoUp) {
-    Mogo.spinTo(500, rotationUnits::deg, waitForCompletion);
-  } else {
-    Mogo.spinTo(0, rotationUnits::deg, waitForCompletion);
-  }
-  mogoUp = !mogoUp;
+void brake_drive() {
+  lf.setStopping(hold);
+  lb.setStopping(hold);
+  rf.setStopping(hold);
+  rb.setStopping(hold);
 }
-void toggleConveyor() {
-  if (!conveyorOn) {
-    Conveyor.spin(directionType::rev);
-  } else {
-    Conveyor.stop();
-  }
-  conveyorOn = !conveyorOn;
+void coast_drive() {
+  lf.setStopping(coast);
+  lb.setStopping(coast);
+  rf.setStopping(coast);
+  rb.setStopping(coast);
 }
 
-/*------------------------------  PRE-AUTON  --------------------------*/
+void set_posessor  (int input) { posessor.  spin(fwd, input*SCALE, voltageUnits::mV); }
+void set_transmission(int input) { transmission.spin(fwd, input*SCALE, voltageUnits::mV); }
+void set_lift  (int input) { lift.  spin(fwd, input*SCALE, voltageUnits::mV); }
+void set_ring  (int input) { ring.  spin(fwd, input*SCALE, voltageUnits::mV); }
+// Set position
+void set_posessor_position  (int pos, int speed) { posessor.  startRotateTo(pos, rotationUnits::deg, speed, velocityUnits::pct); }
+void set_lift_position  (int pos, int speed) { lift.  startRotateTo(pos, rotationUnits::deg, speed, velocityUnits::pct); }
 
+bool WAS_RESET_SUCCESS = false;
+/////////////////////////////////////////////
 void pre_auton(void) {
-  vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
-                 // YOU DOING
+  vexcodeInit();
 
-  Inertial.calibrate();
-  while( Inertial.isCalibrating() ) { wait(10,msec); }
-
-  // might not be executing during testing
-  Drive.setVelocity(100, velocityUnits::pct);
-  Claw.setVelocity(90, velocityUnits::pct);
-  Lift.setVelocity(90, velocityUnits::pct);
-  Mogo.setVelocity(100, velocityUnits::pct);
-  Conveyor.setVelocity(100, velocityUnits::pct);
-
-  // Reset motors which rotate based on degrees 
-  Claw.resetRotation(); // claw starts CLOSED
-  Mogo.resetRotation(); // Mogo starts UP
-  Lift.resetRotation(); // Lift starts DOWN
-
-  Lift.setStopping(brakeType::hold);
-  Mogo.setStopping(brakeType::hold);
-  Claw.setStopping(brakeType::hold);
+  WAS_RESET_SUCCESS = true;
 }
 
-/*------------------------------  AUTON  -------------------------------*/
-
-void grabNeutralGoal() {
-  Drive.setVelocity(100, velocityUnits::pct); // max speed to avoid stealing
-
-  Drive.spinFor(forward, msecNeutralGoal, msec); // drives to neutral goal
-  toggleClaw();                                  // grab goal
-  Lift.spinToPosition(0, rotationUnits::deg); // allow for claw to open
-
-  Drive.spinFor(reverse, msecNeutralGoal * 0.61,
-                msec);           // drives halfway back to alliance zone
-}
-
-void allianceGoal() {
-  Drive.setVelocity(80, velocityUnits::pct);
-
-  DriveL.spin(forward);
-  DriveR.spin(reverse);
-  waitUntil(Inertial.heading() > 90);
-  Drive.stop(brakeType::brake);  
-
-  /* LEFT TURN
-  DriveL.spin(reverse);                                           // spins both
-  motors in DriveR.spin(forward);                                           //
-  reverse directions to turn vex::task::sleep(halfTurnMsecs); // waits until
-  turn is over Drive.stop(brakeType::brake); // stops both motors*/
-
-  // PROTO FULL SPIN + ACCOUNT FOR DRIFT
-  /*DriveL.spin(reverse);
-  DriveR.spin(forward);
-  vex::task::sleep(halfTurnMsecs * 2 - 92);
-  Drive.stop(brakeType::brake);*/
-}
-
+bool did_auto_finish = false;
+/////////////////////////////////////////////
 void autonomous(void) {
-  /*allianceGoal();
-  vex::task::sleep(500);
-  grabNeutralGoal();*/
+  posessor.setBrake(brakeType::brake);
+  lift.setBrake(brakeType::brake);
+  brake_drive();
+  set_tank(120,120);
+  set_lift(-120);
+  set_ring(-25);
+  set_posessor(120);
+  wait(500,msec);
+  set_lift(0);
+  set_posessor(0);
+  set_ring(0);
+  ///////////////////// "setup while the bot runs to middle" above this line
+  wait(650,msec);
+  set_tank(0,0);
+  set_lift(120);
+  wait(50,msec);
+  set_tank(-120,-120);
+  wait(100,msec);
 
-  // clear claw
-  Lift.spinToPosition(300, rotationUnits::deg); // allow for claw to open
-  toggleClaw();                                // opens claw
-  //Lift.spinToPosition(0, rotationUnits::deg);  // prepare for closing
-
-  grabNeutralGoal();
-
-  DriveL.spin(forward);
-  DriveR.spin(reverse);
-  waitUntil(Inertial.heading() < 90 && Inertial.heading() > 40); // drift
-  Drive.stop(brakeType::brake);
-
-  toggleMogo(true);
-  Drive.spinFor(reverse, msecAllianceGoal,
-                msec);           // drives to alliance
-  wait(1, timeUnits::sec);
-  toggleMogo();
-  wait(1, timeUnits::sec);
-  Drive.spinFor(forward, msecAllianceGoal,
-                msec);           // drives back
-  toggleConveyor();
-
-  Drive.setVelocity(100, velocityUnits::pct);
-  Claw.setVelocity(100, velocityUnits::pct);
-  Lift.setVelocity(100, velocityUnits::pct);
-}
-
-/*------------------------------  USER CONTROL  -----------------------------*/
-
-void usercontrol(void) {
-  // worth a try
-  Drive.setVelocity(100, velocityUnits::pct);
-  Claw.setVelocity(90, velocityUnits::pct);
-  Lift.setVelocity(90, velocityUnits::pct);
-  Mogo.setVelocity(100, velocityUnits::pct);
-  Conveyor.setVelocity(100, velocityUnits::pct);
-
-  bool pressing[3] = {false, false, false};
-
-
-  while (1) {
-    Controller.Screen.newLine();
-    Controller.Screen.print("%f", Inertial.heading(rotationUnits::deg));
-    // Move drivetrain to controller stick posittion
-    DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(),
-                vex::velocityUnits::pct);
-    DriveR.spin(vex::directionType::fwd, Controller.Axis2.position(),
-                vex::velocityUnits::pct);
-
-    // Claw close and open (bless Cornelius)
-    if (ClawToggle.pressing() && !pressing[1]) {
-      toggleClaw();
-    }
-    // Mogo up and down (bless Cornelius)
-    if (MogoToggle.pressing() && !pressing[0]) {
-      toggleMogo();
-    }
-    // Claw close and open (bless Cornelius)
-    if (ConveyorToggle.pressing() && !pressing[2]) {
-      toggleConveyor();
-    }
-
-    // Lift up & down (bless Cornelius)
-    if (LiftUp.pressing()) {
-      Lift.spin(directionType::fwd);
-    } else if (LiftDown.pressing()) {
-      Lift.spin(directionType::rev);
-    } else {
-      Lift.stop();
-    }
-
-    pressing[0] = MogoToggle.pressing();
-    pressing[1] = ClawToggle.pressing();
-    pressing[2] = ConveyorToggle.pressing();
-
-    wait(20, msec); // Sleep the task for a short amount of time to prevent
-                    // wasted resources
+  ///////////////// "bot picks up and gets a hold of yellow goal" above this line
+  
+  if(leftifnotright == true){
+    
   }
+  ///////////////// "left side normal" above this line
+  if (leftifnotright == false){
+    set_lift(0);
+  set_tank(-120,20);
+  wait(600,msec);
+  set_tank(0,0);
+  wait(500,msec);
+  set_tank(-45,-45);
+  wait(1600,msec);
+  set_tank(0,0);
+  set_posessor(-80);
+  wait(1000,msec);
+  set_posessor(0);
+  }
+  ///////////////// "right side normal" above this line
+
+
+  set_tank(0,0);
+  set_posessor(0);
+  set_lift(0);
+  set_ring(0);
+  wait(1000,msec);
+  coast_drive();
+
+  
+///////////////// "ready for driving" above this line
+  
+
+  did_auto_finish = true;
 }
 
-// Main will set up the competition functions and callbacks.
+
+////////////////////////////////////////////////////////////
+void usercontrol(void) {
+  while(WAS_RESET_SUCCESS == false){
+    wait(10, msec);
+  }
+  while (1) {
+   // calculate the drivetrain motor velocities from the controller joystick
+      // axies left = Axis3 right = Axis2
+        int l_joy = abs(Controller1.Axis3.value())>THRESH ? Controller1.Axis3.value() : 0;
+        int r_joy = abs(Controller1.Axis2.value())>THRESH ? Controller1.Axis2.value() : 0;
+        set_tank(l_joy, r_joy);
+      // check the ButtonL1/ButtonL2 status to control Lift
+      if (Controller1.ButtonL2.pressing()) {
+        lift.spin(reverse, Max, vex::voltageUnits::mV);
+        Controller1LeftShoulderControlMotorsStopped = false;
+      } else if (Controller1.ButtonL1.pressing()) {
+        lift.spin(forward, Max, vex::voltageUnits::mV);
+        Controller1LeftShoulderControlMotorsStopped = false;
+      } else if (!Controller1LeftShoulderControlMotorsStopped) {
+        lift.setBrake(brakeType::brake);
+        lift.stop();
+        // set the toggle so that we don't constantly tell the motor to stop
+        // when the buttons are released
+        Controller1LeftShoulderControlMotorsStopped = true;
+      }
+      // check the ButtonR1/ButtonR2 status to control Posessor
+      if (Controller1.ButtonR1.pressing()) {
+        posessor.spin(reverse, Max, vex::voltageUnits::mV);
+        Controller1RightShoulderControlMotorsStopped = false;
+      } else if (Controller1.ButtonR2.pressing()) {
+        posessor.spin(forward, Max, vex::voltageUnits::mV);
+        Controller1RightShoulderControlMotorsStopped = false;
+      } else if (!Controller1RightShoulderControlMotorsStopped) {
+        posessor.setBrake(brakeType::brake);
+        posessor.stop();
+        // set the toggle so that we don't constantly tell the motor to stop
+        // when the buttons are released
+        Controller1RightShoulderControlMotorsStopped = true;
+      }
+      if (Controller1.ButtonLeft.pressing() && transmission_delay == 100000) {
+      transmission.spin(reverse, Max, vex::voltageUnits::mV);
+      } else if (Controller1.ButtonLeft.pressing() && transmission_delay < 100000) {
+        transmission_delay= transmission_delay + 1;
+      } else if (Controller1.ButtonDown.pressing() && transmission_delay == 100000){
+      transmission.spin(forward, Max, vex::voltageUnits::mV);
+      } else if (transmission_delay == 100000){
+        transmission.stop();
+      }
+
+      // check the ButtonA/ButtonB/ButtonX/ButtonY Satus to control Ring but shittily logic'd because I dont care
+      if (Controller1.ButtonA.pressing() && (ConveyorUp == false)) {
+        ConveyorUp = true;
+      }
+      if (Controller1.ButtonB.pressing() && (ConveyorUp == true)) {
+        ConveyorUp = false;
+      }
+      if (Controller1.ButtonX.pressing()) {
+        ConveyorStopped = true;
+      }
+      if (Controller1.ButtonY.pressing()) {
+        ConveyorStopped = false;
+      }
+      if (ConveyorStopped == false) {
+          if (ConveyorUp == false) {
+            ring.spin(forward, Max, vex::voltageUnits::mV);
+          } else {
+        ring.spin(reverse, Max, vex::voltageUnits::mV);
+          }
+       } else {
+         ring.stop();
+        }
+  }
+  // wait before repeating the process
+  wait(10, msec);
+}
+
+
+
+
+
+
 int main() {
-  // Set up callbacks for autonomous and driver control periods.
+  //reset all positions
+  pre_auton();
+  //main functions
   Competition.autonomous(autonomous);
   Competition.drivercontrol(usercontrol);
-
-  // Run the pre-autonomous function.
-  pre_auton();
-
-  // Prevent main from exiting with an infinite loop.
-  while (true) {
-    wait(100, msec);
-  }
+  
+ //time LOOP
+ while(true) {
+   wait(100,msec);
+ }
 }
