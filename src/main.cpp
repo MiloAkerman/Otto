@@ -21,7 +21,7 @@ vex::motor Mogo = vex::motor(vex::PORT15);
 vex::motor Lift = vex::motor(vex::PORT6);
 vex::motor Claw = vex::motor(vex::PORT12, true);
 vex::motor Conveyor = vex::motor(vex::PORT8, true);
-vex::inertial Inertial = vex::inertial(vex::PORT21);
+vex::inertial Inertial = vex::inertial(vex::PORT10);
 
 // button setup
 vex::controller Controller = vex::controller();
@@ -38,8 +38,12 @@ motor_group Drive(DriveL1, DriveL2, DriveR1, DriveR2);
 
 // Autonomous values
 double allianceGoalRotation = 40.0;
+<<<<<<< HEAD
 int msecNeutralGoal = 1100;
 int msecAllianceGoal = 500;
+=======
+int msecNeutralGoal = 2800;
+>>>>>>> parent of 7ff0f4c (A TON OF STUFF)
 
 /*------------------------------  HELPERS  --------------------------*/
 bool mogoUp = true;
@@ -79,15 +83,18 @@ void pre_auton(void) {
   vexcodeInit(); // DO NOT REMOVE JESUS CHRIST ARE YOU INSANE WHAT THE HELL ARE
                  // YOU DOING
 
+<<<<<<< HEAD
   Inertial.calibrate();
   while( Inertial.isCalibrating() ) { wait(10,msec); }
 
+=======
+>>>>>>> parent of 7ff0f4c (A TON OF STUFF)
   // might not be executing during testing
-  Drive.setVelocity(100, velocityUnits::pct);
+  Drive.setVelocity(90, velocityUnits::pct);
   Claw.setVelocity(90, velocityUnits::pct);
   Lift.setVelocity(90, velocityUnits::pct);
   Mogo.setVelocity(100, velocityUnits::pct);
-  Conveyor.setVelocity(100, velocityUnits::pct);
+  Conveyor.setVelocity(90, velocityUnits::pct);
 
   // Reset motors which rotate based on degrees 
   Claw.resetRotation(); // claw starts CLOSED
@@ -108,18 +115,20 @@ void grabNeutralGoal() {
   toggleClaw();                                  // grab goal
   Lift.spinToPosition(0, rotationUnits::deg); // allow for claw to open
 
-  Drive.spinFor(reverse, msecNeutralGoal * 0.61,
+  Drive.spinFor(reverse, msecNeutralGoal * 0.60,
                 msec);           // drives halfway back to alliance zone
+  toggleClaw();                  // drops goal
+
+  Drive.spinFor(reverse, msecNeutralGoal * 0.40,
+                msec); // finishes going back to starting spot
 }
 
 void allianceGoal() {
   Drive.setVelocity(80, velocityUnits::pct);
 
-  DriveL.spin(forward);
-  DriveR.spin(reverse);
-  waitUntil(Inertial.heading() > 90);
-  Drive.stop(brakeType::brake);  
+  
 
+  Drive.spinFor(reverse, 1200, msec); // back up
   /* LEFT TURN
   DriveL.spin(reverse);                                           // spins both
   motors in DriveR.spin(forward);                                           //
@@ -138,6 +147,9 @@ void autonomous(void) {
   vex::task::sleep(500);
   grabNeutralGoal();*/
 
+  Inertial.startCalibration();
+  waitUntil(!Inertial.isCalibrating());
+
   // clear claw
   Lift.spinToPosition(300, rotationUnits::deg); // allow for claw to open
   toggleClaw();                                // opens claw
@@ -145,6 +157,7 @@ void autonomous(void) {
 
   grabNeutralGoal();
 
+<<<<<<< HEAD
   DriveL.spin(forward);
   DriveR.spin(reverse);
   waitUntil(Inertial.heading() < 90 && Inertial.heading() > 40); // drift
@@ -160,6 +173,8 @@ void autonomous(void) {
                 msec);           // drives back
   toggleConveyor();
 
+=======
+>>>>>>> parent of 7ff0f4c (A TON OF STUFF)
   Drive.setVelocity(100, velocityUnits::pct);
   Claw.setVelocity(100, velocityUnits::pct);
   Lift.setVelocity(100, velocityUnits::pct);
@@ -169,18 +184,15 @@ void autonomous(void) {
 
 void usercontrol(void) {
   // worth a try
-  Drive.setVelocity(100, velocityUnits::pct);
+  Drive.setVelocity(90, velocityUnits::pct);
   Claw.setVelocity(90, velocityUnits::pct);
   Lift.setVelocity(90, velocityUnits::pct);
   Mogo.setVelocity(100, velocityUnits::pct);
-  Conveyor.setVelocity(100, velocityUnits::pct);
+  Conveyor.setVelocity(90, velocityUnits::pct);
 
   bool pressing[3] = {false, false, false};
 
-
   while (1) {
-    Controller.Screen.newLine();
-    Controller.Screen.print("%f", Inertial.heading(rotationUnits::deg));
     // Move drivetrain to controller stick posittion
     DriveL.spin(vex::directionType::fwd, Controller.Axis3.position(),
                 vex::velocityUnits::pct);
